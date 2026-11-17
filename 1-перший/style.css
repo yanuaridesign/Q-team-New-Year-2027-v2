@@ -1,0 +1,103 @@
+:root{
+  --bg:#FBFAF7; --ink:#0B0908; --pink:#EC187E; --pink2:#D3086A; --yel:#FDFF83;
+  --pop:cubic-bezier(.34,1.56,.64,1); --ez:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:Montserrat,system-ui,sans-serif;overflow-x:hidden}
+img{display:block;user-select:none;-webkit-user-drag:none}
+.sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* every block is a 1920 px design stage scaled to the viewport width */
+.sec{position:relative;width:100%;overflow:hidden}
+.stage{position:absolute;left:0;top:0;width:1920px;transform-origin:0 0;transform:scale(var(--k,1))}
+.stage>*{position:absolute}
+
+/* ================= HERO ================= */
+#hero .stage{height:1030px}
+.tree{left:0;top:0;width:1920px;height:1030px}
+.pl{position:absolute;left:0;top:0;transform-origin:50% 50%;cursor:zoom-in;
+  box-shadow:0 1px 3px rgba(0,0,0,.35);
+  transition:opacity .7s var(--ez),transform .95s var(--pop)}
+.pl.pre{opacity:0;transform:translate(var(--x),calc(var(--y) + 48px)) rotate(var(--a)) scale(.95)}
+.pl{transform:translate(var(--x),var(--y)) rotate(var(--a))}
+.zm{position:absolute;left:0;top:0;z-index:50;pointer-events:none;
+  box-shadow:0 2px 4px rgba(0,0,0,.4);
+  transition:transform .45s var(--ez),box-shadow .45s var(--ez),opacity .2s}
+.zm.on{box-shadow:0 30px 60px rgba(0,0,0,.45)}
+
+.title{z-index:5}
+.hero-sub{font-size:35px;line-height:1.1;letter-spacing:-.04em;font-weight:500;color:#000;z-index:5}
+.hero-sub b{font-weight:600;color:var(--pink)}
+.lab{font-family:Caveat,cursive;font-weight:700;font-size:35px;line-height:.85;letter-spacing:-.01em;color:var(--pink);
+  text-align:center;white-space:nowrap;z-index:6;transform:translate(-50%,-50%) rotate(var(--r))}
+.arr,.spark,.star,.medal{z-index:6}
+.cta{z-index:7;display:flex;align-items:center;justify-content:center;width:395px;height:72px;border-radius:3px;
+  background:var(--pink);color:var(--yel);font:700 26px/1.2 Montserrat,sans-serif;text-transform:uppercase;text-decoration:none;
+  box-shadow:6px 6px 0 var(--ink);transition:transform .25s var(--ez),box-shadow .25s var(--ez)}
+.cta:hover{transform:scale(1.05);box-shadow:9px 9px 0 var(--ink)}
+.cta:focus-visible{outline:3px solid var(--ink);outline-offset:4px}
+.medal{z-index:8;pointer-events:none}
+
+/* hero intro (only when JS is on) */
+.anim .star{opacity:0;transform:translateY(-240px) rotate(-70deg) scale(.5);transition:transform 1.05s var(--pop),opacity .4s var(--ez)}
+.anim .star.on{opacity:1;transform:none}
+.star.on{animation:glow 3.6s ease-in-out 1.2s infinite}
+@keyframes glow{0%,100%{filter:drop-shadow(0 0 0 rgba(255,210,90,0))}50%{filter:drop-shadow(0 0 18px rgba(255,210,90,.75))}}
+.anim .arr{clip-path:inset(-20% 100% -20% -20%);transition:clip-path .9s cubic-bezier(.45,.05,.3,1)}
+.anim .arr.rtl{clip-path:inset(-20% -20% -20% 100%)}
+.anim .arr.on{clip-path:inset(-20% -20% -20% -20%)}
+.anim .lab{opacity:0;transition:opacity .7s var(--ez) .25s}
+.anim .lab.on{opacity:1}
+.anim .title,.anim .hero-sub,.anim .cta,.anim .medal{opacity:0;transform:translateY(24px);transition:opacity .8s var(--ez),transform .9s var(--ez)}
+.anim .title.on,.anim .hero-sub.on,.anim .cta.on,.anim .medal.on{opacity:1;transform:none}
+.anim .medal{transform:scale(.4) rotate(-30deg)}
+.anim .medal.on{transition:transform .8s var(--pop),opacity .4s}
+
+/* ================= STAMPS ================= */
+#stamps .stage{height:830px}
+.st{transition:transform .5s var(--ez),filter .5s var(--ez);z-index:1}
+.st img{width:100%;height:auto}
+.st .bul{position:absolute;width:18.8px}
+.anim .st{opacity:0;transform:scale(1.22) rotate(var(--tw,4deg));filter:drop-shadow(0 30px 30px rgba(0,0,0,.25))}
+.anim .st.on{opacity:1;transform:none;filter:drop-shadow(0 0 0 rgba(0,0,0,0));
+  transition:transform .6s var(--pop),opacity .25s linear,filter .6s var(--ez)}
+.st.ph{cursor:zoom-in}
+.st.ph:hover,.st.ph.on:hover{z-index:20;transform:translateY(-10px) scale(1.12);filter:drop-shadow(0 24px 28px rgba(0,0,0,.28))}
+.st.tx:hover,.st.tx.on:hover{z-index:20;transform:translateY(-6px) scale(1.03);filter:drop-shadow(0 16px 18px rgba(0,0,0,.18))}
+
+/* ================= PAIN / BALL ================= */
+#pain .stage{height:1080px}
+.snow{width:58px;opacity:.9}
+.ptitle{z-index:3}
+.t20{font-size:20px;line-height:1.1;color:var(--ink)}
+.src{font-size:15px;line-height:1.3;color:#A8A6A2}
+.src a{color:inherit}
+.src a:hover{color:var(--pink)}
+.lbl{font-size:15px;line-height:1.2;letter-spacing:-.02em}
+.h48{font-size:48px;line-height:.9;font-weight:600;letter-spacing:-.02em}
+.h35{font-size:35px;line-height:.9;font-weight:600}
+.big{font-size:107px;line-height:.81;font-weight:600;color:var(--pink2)}
+.num{font-size:72px;line-height:72px;font-weight:600}
+.num small{font-size:30px}
+.dots{z-index:0}
+
+.ball{z-index:10;transform-origin:50% 0;will-change:transform}
+.broken,.shadow{opacity:0;z-index:9}
+.broken.on{opacity:1;animation:land .55s var(--pop)}
+.shadow.on{opacity:1;transition:opacity .4s}
+@keyframes land{0%{transform:translateY(-14px) scaleY(.9)}60%{transform:translateY(2px) scaleY(1.03)}100%{transform:none}}
+.ball.sway{animation:sway 1.7s ease-in-out forwards}
+@keyframes sway{
+  0%{transform:rotate(0)} 18%{transform:rotate(7deg)} 38%{transform:rotate(-9deg)}
+  58%{transform:rotate(11deg)} 78%{transform:rotate(-6deg)} 100%{transform:rotate(3deg)}}
+.ball.fall{transition:transform .62s cubic-bezier(.55,0,1,.45);}
+.ball.gone{opacity:0;transition:opacity .05s}
+.shards{width:0;height:0;z-index:11}
+.shards i{position:absolute;left:0;top:0;width:10px;height:7px;border-radius:2px;
+  transition:transform .7s cubic-bezier(.2,.8,.3,1),opacity .7s ease-in}
+#pain.hit .stage{animation:jolt .35s ease-out}
+@keyframes jolt{0%,100%{translate:0 0}30%{translate:0 4px}60%{translate:0 -2px}}
+
+@media (prefers-reduced-motion:reduce){
+  .anim .st,.anim .star,.anim .arr,.anim .lab,.anim .title,.anim .hero-sub,.anim .cta,.anim .medal{opacity:1!important;transform:none!important;clip-path:none!important;transition:none!important}
+}
