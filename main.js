@@ -59,17 +59,14 @@
     p.im.addEventListener('mouseleave', () => { if (cur === p) { cur = null; zoomOff(p); } });
   });
 
-  /* ---------- PRELOADER: wait for the hero images + fonts (max 3.5 s), like the previous version ---------- */
+  /* ---------- PRELOADER = the tree itself: wait for the hero images + fonts (max 3.5 s), then the photos fall in ---------- */
   const decode = im => (im.complete && im.naturalWidth ? Promise.resolve() : new Promise(r => { im.addEventListener('load', r, { once: true }); im.addEventListener('error', r, { once: true }); }))
     .then(() => im.decode ? im.decode().catch(() => {}) : null);
   const heroReady = Promise.all([...photos.map(p => decode(p.im)), ...[...hero.querySelectorAll('img')].map(decode)])
     .then(() => document.fonts && document.fonts.ready);
-  const preloader = document.getElementById('preloader');
-
   let started = false;
   async function start() {
     if (started) return; started = true;
-    preloader.classList.add('out');
     // decode everything below the fold right away, so later blocks appear instantly
     document.querySelectorAll('#stamps img, #pain img').forEach(decode);
     const on = el => el && el.classList.add('on');
@@ -101,8 +98,7 @@
   heroReady.then(start);
   setTimeout(start, 3500);
 
-  /* ---------- STAMPS: straight at first, three photo stamps peel off while scrolling ---------- */
-  const stampsSec = document.getElementById('stamps');
+  /* ---------- STAMPS: straight at first; each photo stamp peels off once, when it crosses the middle of the screen ---------- */
   const mat = str => str.split(',').map(Number); // a,b,c,d,e,f (Figma absoluteTransform, frame-relative)
   const tears = [...document.querySelectorAll('#stamps .tear')].map(el => {
     const [sa, sb, sc, sd, se, sf] = mat(el.dataset.s), [ta, tb, tc, td, te, tf] = mat(el.dataset.t);
@@ -112,26 +108,24 @@
     const ux = parseFloat(el.style.left), uy = parseFloat(el.style.top);
     const vx = ux - se, vy = uy - sf;
     const dx = ma * vx + mc * vy + te - ux, dy = mb * vx + md * vy + tf - uy;
-    return { el, ang: Math.atan2(mb, ma), dx, dy };
+    return { el, done: false, tf: `translate(${dx}px,${dy}px) rotate(${Math.atan2(mb, ma)}rad)` };
   });
-  let tp = 0, cp = 0, raf = 0;
-  const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-  function paint() {
-    cp += (tp - cp) * .14;
-    if (Math.abs(tp - cp) < .001) cp = tp;
-    const e = ease(cp);
-    tears.forEach(t => { t.el.style.transform = `translate(${t.dx * e}px,${t.dy * e}px) rotate(${t.ang * e}rad)`; });
-    raf = cp !== tp ? requestAnimationFrame(paint) : 0;
+  let nextAt = 0;
+  function tearCheck() {
+    const mid = innerHeight / 2, now = performance.now();
+    tears.forEach(t => {
+      if (t.done) return;
+      const r = t.el.getBoundingClientRect();
+      if (r.top + r.height / 2 > mid) return;      // its centre has not crossed the middle of the screen yet
+      t.done = true;                               // once only: scrolling back does not straighten it
+      const delay = Math.max(0, nextAt - now);     // stamps crossing together go one after another
+      nextAt = now + delay + 220;
+      setTimeout(() => { t.el.style.transform = t.tf; }, delay);
+    });
   }
-  function onScroll() {
-    if (reduce) return;
-    const r = stampsSec.getBoundingClientRect(), vh = innerHeight;
-    tp = clamp((vh * .35 - r.top) / (vh * .45), 0, 1);
-    if (!raf) raf = requestAnimationFrame(paint);
-  }
-  addEventListener('scroll', onScroll, { passive: true });
-  addEventListener('resize', onScroll);
-  onScroll();
+  addEventListener('scroll', tearCheck, { passive: true });
+  addEventListener('resize', tearCheck);
+  tearCheck();
 
   /* ---------- PAIN: the ball sways, falls and breaks, then the pink arrow appears ---------- */
   const pain = document.getElementById('pain');
