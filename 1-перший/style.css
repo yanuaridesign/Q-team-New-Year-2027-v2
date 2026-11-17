@@ -101,3 +101,13 @@ img{display:block;user-select:none;-webkit-user-drag:none}
 @media (prefers-reduced-motion:reduce){
   .anim .st,.anim .star,.anim .arr,.anim .lab,.anim .title,.anim .hero-sub,.anim .cta,.anim .medal{opacity:1!important;transform:none!important;clip-path:none!important;transition:none!important}
 }
+
+
+/* 17.11: title behind the tree, stronger CTA hover, stamps without scale */
+.title.t1{z-index:1}.pl{z-index:2}
+.anim .cta.on{transition:transform .3s var(--pop),box-shadow .3s var(--ez),background-color .2s,color .2s,opacity .8s}
+.cta:hover,.anim .cta.on:hover{transform:translate(-5px,-5px) scale(1.07);box-shadow:12px 12px 0 var(--ink);background:var(--yel);color:var(--pink)}
+.cta:active,.anim .cta.on:active{transform:translate(3px,3px);box-shadow:2px 2px 0 var(--ink);transition-duration:.08s}
+.anim .st{transform:translateY(-24px) rotate(var(--tw,4deg))}
+.st.ph{cursor:default}
+.st.ph:hover,.st.ph.on:hover,.st.tx:hover,.st.tx.on:hover{transform:translateY(-6px)}
