@@ -108,7 +108,10 @@
     const ux = parseFloat(el.style.left), uy = parseFloat(el.style.top);
     const vx = ux - se, vy = uy - sf;
     const dx = ma * vx + mc * vy + te - ux, dy = mb * vx + md * vy + tf - uy;
-    return { el, done: false, tf: `translate(${dx}px,${dy}px) rotate(${Math.atan2(mb, ma)}rad)` };
+    const tfm = `translate(${dx}px,${dy}px) rotate(${Math.atan2(mb, ma)}rad)`;
+    // .pre stamps are already tilted in the layout (Figma 578:108); only the others peel off on scroll
+    if (el.classList.contains('pre')) { el.style.transition = 'none'; el.style.transform = tfm; }
+    return { el, done: el.classList.contains('pre'), tf: tfm };
   });
   let nextAt = 0;
   function tearCheck() {
@@ -127,7 +130,7 @@
   addEventListener('resize', tearCheck);
   tearCheck();
 
-  /* ---------- PAIN: the ball sways, falls and breaks, then the pink arrow appears ---------- */
+  /* ---------- PAIN: the ball sways, falls and breaks (arrow and garland are static) ---------- */
   const pain = document.getElementById('pain');
   const ball = document.getElementById('ball');
   const broken = document.getElementById('ballBroken');
@@ -179,39 +182,54 @@
 
   /* ---------- QUIZ: 3 questions + form (Figma 594:990, 619:*) ---------- */
   const quiz = document.getElementById('quiz');
-  const steps = [...quiz.querySelectorAll('.qs')];
+  // same behaviour as the previous site: the bar fills smoothly after every answer, the 3-minute timer starts
+  // with the first answer, the question and answers fade in one by one, an answer card lifts on hover
   const Q = [
-    { opts: [[243.8, 'Новорічний корпоратив'], [636.9, 'Тімбілдінг'], [1030, 'Річниця компанії'], [1423.1, 'Інше']] },
-    { opts: [[439.5, 'На нашій локації'], [832.5, 'Виїзний'], [1225.5, 'Онлайн']], prev: true },
-    { opts: [[243.8, '4–25 людей'], [636.9, '26-50 людей'], [1030, '51–100 людей'], [1423.1, '100+ людей']], prev: true },
+    { t: 'Яка нагода свята?', opts: [[243.8, 'Новорічний корпоратив'], [636.9, 'Тімбілдінг'], [1030, 'Річниця компанії'], [1423.1, 'Інше']] },
+    { t: 'Де проводимо?', opts: [[439.5, 'На нашій локації'], [832.5, 'Виїзний'], [1225.5, 'Онлайн']] },
+    { t: 'Скільки буде учасників?', opts: [[243.8, '4–25 людей'], [636.9, '26–50 людей'], [1030, '51–100 людей'], [1423.1, '100+ людей']] },
   ];
   const answers = [];
-  const go = i => steps.forEach((s, k) => s.classList.toggle('on', k === i));
   const form = document.getElementById('qform');
+  const qbody = document.getElementById('qbody'), qprog = document.getElementById('qprog'), qfill = document.getElementById('qfill'), qtimer = document.getElementById('qtimer');
   const chips = [...form.querySelectorAll('.chip')];
   const fillChips = () => chips.forEach((c, i) => { c.textContent = answers[i] || ''; });
-  Q.forEach((q, qi) => {
-    const box = steps[qi];
-    q.opts.forEach(([x, label]) => {
-      const b = document.createElement('button'); b.type = 'button'; b.className = 'opt'; b.textContent = label;
-      b.style.cssText = `left:${x}px;top:722.8px;width:255.1px;height:58.9px`;
-      const c = document.createElement('button'); c.type = 'button'; c.className = 'circ'; c.setAttribute('aria-label', label); c.tabIndex = -1;
-      c.style.cssText = `left:${x}px;top:432.2px;width:255.1px;height:255.1px`;
-      const pick = () => {
-        box.querySelectorAll('.opt').forEach(o => o.classList.toggle('sel', o === b));
-        answers[qi] = label;
-        setTimeout(() => { if (qi === Q.length - 1) fillChips(); go(qi + 1); }, 380);
-      };
-      b.addEventListener('click', pick); c.addEventListener('click', pick);
-      c.addEventListener('mouseenter', () => b.classList.add('hov')); c.addEventListener('mouseleave', () => b.classList.remove('hov'));
-      box.append(c, b);
+  const TRACK = 1305.9;
+  const setFill = n => { qfill.style.width = (TRACK * n / 3) + 'px'; qfill.style.opacity = n ? 1 : 0; };
+  let left = 180, tid = null;
+  const showTime = () => { qtimer.textContent = Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0'); };
+  const startTimer = () => { if (tid) return; tid = setInterval(() => { left = Math.max(0, left - 1); showTime(); if (!left) stopTimer(); }, 1000); };
+  const stopTimer = () => { clearInterval(tid); };
+  let step = 0;
+  function render() {
+    qbody.innerHTML = '';
+    const done = step >= 3;
+    quiz.classList.toggle('form', done);
+    form.classList.toggle('on', done);
+    if (done) { fillChips(); return; }
+    qprog.textContent = `Питання ${step + 1} / 3`;
+    setFill(step);
+    const q = Q[step];
+    const t = document.createElement('p'); t.className = 'qtitle fade'; t.textContent = q.t; qbody.appendChild(t);
+    q.opts.forEach(([x, label], j) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'qo fade';
+      b.style.cssText = `left:${x - 7.45}px;top:424.75px;animation-delay:${60 + j * 70}ms`;
+      b.innerHTML = `<img src="assets/quiz/c${step}-${j}.jpg" alt=""><span class="opt">${label}</span>`;
+      if (answers[step] === label) b.classList.add('sel');
+      b.addEventListener('click', () => {
+        answers[step] = label; startTimer(); setFill(step + 1);
+        qbody.querySelectorAll('.qo').forEach(o => o.classList.toggle('sel', o === b));
+        setTimeout(() => { step++; render(); }, 380);
+      });
+      qbody.appendChild(b);
     });
-    if (q.prev) {
-      const p = document.createElement('button'); p.type = 'button'; p.className = 'prev'; p.textContent = 'Попереднє питання';
-      p.style.cssText = 'left:100px;top:818px;width:180px'; p.addEventListener('click', () => go(qi - 1)); box.append(p);
+    if (step > 0) {
+      const p = document.createElement('button'); p.type = 'button'; p.className = 'qback fade'; p.textContent = 'Попереднє питання';
+      p.addEventListener('click', () => { step--; render(); }); qbody.appendChild(p);
     }
-  });
-  form.querySelector('.prev').addEventListener('click', () => go(2));
+  }
+  render();
+  form.querySelector('.prev').addEventListener('click', () => { step = 2; render(); });
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const name = form.elements.name, phone = form.elements.phone;
@@ -221,7 +239,7 @@
     const data = { occasion: answers[0], place: answers[1], people: answers[2], name: name.value.trim(), phone: phone.value.trim(), company: form.elements.company.value.trim() };
     // the Vercel site has no form backend yet: set window.QTEAM_FORM_ENDPOINT to POST the lead somewhere
     if (window.QTEAM_FORM_ENDPOINT) { try { await fetch(window.QTEAM_FORM_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); } catch (_) { /* keep the thank-you */ } }
-    form.classList.add('done'); form.querySelector('.thanks').hidden = false;
+    form.classList.add('done'); form.querySelector('.thanks').hidden = false; stopTimer();
   });
 
   /* ---------- SCENARIOS: pinned table, the camera walks through 5 open plates ---------- */
@@ -249,40 +267,85 @@
   lidAndPhoto('mon'); addImg('s5.png', 838.86, 24, 4496.24);
   const ovEls = ['ov-0', 'ov-det', 'ov-fort', 'ov-caps', 'ov-quiz', 'ov-mon'].map(n => { const im = new Image(); im.src = 'assets/scen/' + n + '.png'; im.alt = ''; ovs.appendChild(im); return im; });
 
-  const smooth = x => x * x * (3 - 2 * x);
-  let travel = 1;
+  /* the motion is the previous site's table 1:1: the camera moves evenly with the scroll (smoothed so the pinned
+     scene never shakes), a plate opens while it is near the centre, its text fades in, and when scrolling stops
+     between two plates the page glides to the nearest one */
+  const sm = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  const X0 = STATES[0][0], KX = STATES.slice(1).map(s => s[0]), XE = KX[4];
+  const DIST = 3000; // scroll length of the scene in stage px, as before
+  const tyAt = x => { for (let i = 0; i < 5; i++) { const [xa, ya] = STATES[i], [xb, yb] = STATES[i + 1]; if (x <= xa && x >= xb) return ya + (yb - ya) * (xa - x) / (xa - xb); } return x > X0 ? STATES[0][1] : STATES[5][1]; };
+  const openAmt = (i, x) => (i === 4 && x < KX[4]) ? 1 : 1 - sm(110, 290, Math.abs(x - KX[i]));
+  const descAmt = (i, x) => (i === 4 && x < KX[4]) ? 1 : 1 - sm(60, 210, Math.abs(x - KX[i]));
+  let K = 1;
   function scenFit() {
-    const k = document.documentElement.clientWidth / 1920, h = SH * k;
-    sStage.style.setProperty('--k', k);
+    K = document.documentElement.clientWidth / 1920; const h = SH * K;
+    sStage.style.setProperty('--k', K);
     pin.style.height = h + 'px';
     pin.style.top = Math.min(0, innerHeight - h) + 'px';
-    travel = Math.max(400, innerHeight) * 0.85 * 5;
-    scen.style.height = (h + travel) + 'px';
-    scenPaint();
+    scen.style.height = (h + DIST * K) + 'px';
+    tDirty = true;
   }
-  function scenPaint() {
-    const r = scen.getBoundingClientRect();
-    let p = clamp(-r.top / travel, 0, 1) * 5;
-    if (!Number.isFinite(p)) p = 0; // e.g. a hidden tab reports innerHeight 0
-    // hold on each state for a while, then move to the next one
-    const i = Math.min(4, Math.floor(p)), f = p - i;
-    const t = reduce ? Math.round(p) : i + smooth(clamp((f - 0.25) / 0.5, 0, 1));
-    const a = Math.floor(t), b = Math.min(5, a + 1), u = t - a;
-    const tx = STATES[a][0] + (STATES[b][0] - STATES[a][0]) * u, ty = STATES[a][1] + (STATES[b][1] - STATES[a][1]) * u;
-    tbl.style.transform = `translate(${tx}px,${ty}px)`;
+  const progT = () => { const p = -scen.getBoundingClientRect().top / (DIST * K); return Number.isFinite(p) ? clamp(p, 0, 1) : 0; };
+  function drawTable(p) {
+    const q = Math.min(1, p / 0.9), x = X0 + (XE - X0) * q;
+    tbl.style.transform = `translate(${x}px,${tyAt(x)}px)`;
     KEYS.forEach((key, n) => {
-      const o = smooth(clamp(1 - Math.abs(t - (n + 1)) * 1.6, 0, 1));
+      const o = reduce ? (Math.abs(x - KX[n]) < 1 ? 1 : 0) : openAmt(n, x);
       const L = LID[key], [ca, cb, ex, ey, wl] = L.up;
       const sc = 1 + o * (wl / L.w - 1), ang = Math.atan2(cb, ca) * o;
       lidEl[key].style.transform = `translate(${(ex - L.rb[0]) * o}px,${(ey - L.rb[1]) * o}px) rotate(${ang}rad) scale(${sc})`;
       lidEl[key].style.zIndex = o > 0.01 ? 20 : '';
       phEl[key].style.zIndex = o > 0.01 ? 19 : '';
-      phEl[key].style.opacity = o;
-      phEl[key].style.transform = `translateY(${(1 - o) * 90}px) scale(${0.85 + 0.15 * o})`;
+      phEl[key].style.opacity = Math.min(1, o * 1.6);
+      phEl[key].style.transform = `translateY(${(1 - o) * 110}px) scale(${0.55 + 0.45 * o})`;
     });
-    ovEls.forEach((im, n) => { im.style.opacity = clamp(1 - Math.abs(t - n) * 2.2, 0, 1); });
+    // intro heading slides away to the left, the plate texts fade in near their plate
+    const hp = 1 - sm(KX[0] + 40, X0 - 5, x);
+    ovEls[0].style.opacity = (1 - hp).toFixed(3);
+    ovEls[0].style.transform = `translateX(${(-1050 * hp).toFixed(1)}px)`;
+    for (let i = 0; i < 5; i++) {
+      const da = descAmt(i, x), im = ovEls[i + 1];
+      im.style.opacity = da.toFixed(3);
+      im.style.transform = `translateY(${((1 - da) * 14).toFixed(2)}px)`;
+    }
   }
-  addEventListener('scroll', scenPaint, { passive: true });
+  let tpC = 0, tDirty = true, lastT = performance.now();
+  function frame(now) {
+    const dt = Math.min(.064, (now - lastT) / 1000); lastT = now; const a = 1 - Math.exp(-dt * 10);
+    const tpT = progT();
+    if (Math.abs(tpT - tpC) > 1e-5) { tpC += (tpT - tpC) * a; if (Math.abs(tpT - tpC) < 1e-5) tpC = tpT; tDirty = true; }
+    const r = scen.getBoundingClientRect();
+    if (tDirty && r.bottom > -50 && r.top < innerHeight + 50) { drawTable(tpC); tDirty = false; }
+    requestAnimationFrame(frame);
+  }
+  // when scrolling stops between two plates, glide gently to the nearest one
+  {
+    let st = null, touching = false, snapping = false;
+    const stops = [0, ...KX.map(v => .9 * (X0 - v) / (X0 - XE))];
+    const stop = () => { snapping = false; removeEventListener('touchstart', stop); removeEventListener('wheel', stop); removeEventListener('keydown', stop); };
+    function glide(dy) {
+      if (Math.abs(dy) < 1) return;
+      if (reduce) { scrollTo(0, scrollY + dy); return; }
+      snapping = true; const y0 = scrollY, dur = Math.min(1200, Math.max(650, Math.abs(dy) * .9)), t0 = performance.now();
+      const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      addEventListener('touchstart', stop, { passive: true }); addEventListener('wheel', stop, { passive: true }); addEventListener('keydown', stop);
+      const step = now => { if (!snapping) return; const t = Math.min(1, (now - t0) / dur); scrollTo(0, y0 + dy * ease(t)); if (t < 1) requestAnimationFrame(step); else setTimeout(stop, 80); };
+      requestAnimationFrame(step);
+    }
+    const snap = () => {
+      if (touching || snapping) return;
+      const p = -scen.getBoundingClientRect().top / (DIST * K), last = stops[stops.length - 1];
+      if (!(p > 0.004 && p < last - 0.004)) return;
+      let n = stops[0]; for (const v of stops) if (Math.abs(v - p) < Math.abs(n - p)) n = v;
+      if (Math.abs(n - p) * DIST < 25) return;
+      glide((n - p) * DIST * K);
+    };
+    addEventListener('touchstart', () => { touching = true; clearTimeout(st); }, { passive: true });
+    addEventListener('touchend', () => { touching = false; clearTimeout(st); st = setTimeout(snap, 350); }, { passive: true });
+    addEventListener('scroll', () => { if (snapping) return; clearTimeout(st); st = setTimeout(snap, 450); }, { passive: true });
+  }
   addEventListener('resize', scenFit);
   scenFit();
+  drawTable(tpC = progT());
+  requestAnimationFrame(frame);
 })();

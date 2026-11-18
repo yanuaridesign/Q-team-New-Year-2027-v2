@@ -3,7 +3,10 @@
   --pop:cubic-bezier(.34,1.56,.64,1); --ez:cubic-bezier(.22,1,.36,1);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:var(--bg);color:var(--ink);font-family:Montserrat,system-ui,sans-serif;overflow-x:hidden}
+html,body{background:var(--bg);color:var(--ink);font-family:Montserrat,system-ui,sans-serif}
+/* clip (not hidden) on body: hidden would make body a scroll container and break the sticky table */
+html{overflow-x:hidden}
+body{overflow-x:clip}
 img{display:block;user-select:none;-webkit-user-drag:none}
 .sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
@@ -104,11 +107,13 @@ img{display:block;user-select:none;-webkit-user-drag:none}
 #pain .stage{height:2671px}
 .b3bg{z-index:0}
 #pain .src{z-index:2}
-.reveal{z-index:4}
-.anim .bulb{opacity:0;transform:scale(.6);transition:opacity .5s var(--ez) .5s,transform .6s var(--pop) .5s}
-.anim .bulb.on{opacity:1;transform:none}
-.anim .garl{clip-path:inset(0 0 100% 0);transition:clip-path 1.4s cubic-bezier(.45,.05,.3,1) .7s}
-.anim .garl.on{clip-path:inset(0 0 0 0)}
+/* logos: endless ribbon right → left, like the previous site */
+.logos{width:1920px;height:58px;overflow:hidden;z-index:2;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.logos .row{display:flex;gap:80px;width:max-content;padding-left:60px;animation:marq 70s linear infinite}
+.logos img{height:57.6px;width:4248px;max-width:none;pointer-events:none}
+@keyframes marq{to{transform:translateX(-4328px)}}
+@media (prefers-reduced-motion:reduce){.logos .row{animation:none}}
 .date-btn{z-index:5;display:block;transition:transform .3s var(--pop)}
 .date-btn img{width:100%;height:auto}
 .date-btn:hover{transform:translate(-3px,-3px) scale(1.05)}
@@ -116,15 +121,37 @@ img{display:block;user-select:none;-webkit-user-drag:none}
 
 /* ================= QUIZ ================= */
 #zayavka .stage{height:997px}
-.qs{position:absolute;left:0;top:0;width:1920px;height:997px;opacity:0;visibility:hidden;transition:opacity .45s var(--ez),visibility .45s}
+.qs{position:absolute;left:0;top:0;width:1920px;height:997px;opacity:0;visibility:hidden;transition:opacity .45s var(--ez),visibility .45s;z-index:5}
 .qs.on{opacity:1;visibility:visible}
 .qs>*{position:absolute}
 .qbg{left:0;top:0;width:1920px}
-.opt{display:flex;align-items:center;justify-content:center;padding:0 30px;background:#F8F6F3;border:1.23px solid #000;border-radius:1.5px;
-  font:600 20px/.95 Montserrat,sans-serif;color:var(--pink);text-align:center;cursor:pointer;transition:background-color .2s,color .2s,transform .25s var(--pop)}
-.opt:hover,.opt.hov,.opt.sel{background:var(--pink);color:var(--bg)}
-.opt:focus-visible{outline:3px solid var(--ink);outline-offset:4px}
-.circ{border:0;background:none;border-radius:50%;cursor:pointer;padding:0}
+#qbody{left:0;top:0;width:1920px;height:997px}
+#qbody>*{position:absolute}
+.qrun{left:0;top:0;width:1920px;height:0;transition:opacity .3s}
+.qrun>*{position:absolute}
+#quiz.form .qrun,#quiz.form #qbody{opacity:0;pointer-events:none}
+.qprog{font:400 15px/18px Montserrat,sans-serif;letter-spacing:-.45px;color:rgba(11,9,8,.55);white-space:nowrap}
+.qtimer{font:700 20.8px/25px Montserrat,sans-serif;color:#000;font-variant-numeric:tabular-nums;white-space:nowrap}
+.qtrack{height:8px}
+.qtrack i{position:absolute;left:0;top:0;height:8px;width:0;border-radius:4px;background:var(--pink2);opacity:0;
+  transition:width .6s var(--ez),opacity .2s}
+.qtitle{left:218.8px;top:345.2px;width:1482.4px;margin:0;text-align:center;font:700 30px/37px Montserrat,sans-serif;text-transform:uppercase;color:var(--ink)}
+/* one answer = photo circle + label; the whole card lifts on hover (previous site) */
+.qo{width:270px;height:357px;padding:0;border:0;background:none;cursor:pointer;transition:transform .35s var(--ez)}
+.qo>*{position:absolute}
+.qo img{left:0;top:0;width:270px;pointer-events:none}
+.qo .opt{left:7.45px;top:298.05px;width:255.1px;height:58.9px;display:flex;align-items:center;justify-content:center;padding:0 30px;
+  background:#F8F6F3;border:1.23px solid #000;border-radius:1.5px;font:600 20px/.95 Montserrat,sans-serif;color:var(--pink);text-align:center;
+  transition:background-color .3s var(--ez),color .3s var(--ez)}
+.qo:hover,.qo:focus-visible{transform:translateY(-4px)}
+.qo:focus-visible{outline:none}
+.qo:focus-visible .opt{outline:3px solid var(--ink);outline-offset:4px}
+.qo:hover .opt,.qo:focus-visible .opt,.qo.sel .opt{background:var(--pink);color:#F8F6F3}
+.anim .fade{animation:fadeIn .55s var(--ez) both}
+@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}}
+.qback{left:108px;top:820px;width:160px;height:22px;padding:0;border:0;background:none;cursor:pointer;
+  font:600 15px/13.5px Montserrat,sans-serif;letter-spacing:-.15px;color:var(--ink);white-space:nowrap;text-align:center;transition:color .2s}
+.qback:hover{color:var(--pink)}
 .prev{border:0;background:none;color:transparent;cursor:pointer;height:26px;padding:0}
 .chip{display:flex;align-items:center;justify-content:center;height:40.87px;font:600 15px/1.2 Montserrat,sans-serif;color:var(--pink2);text-align:center}
 .fld{top:571px;height:58px;border:0;background:transparent;padding:0 10px;font:400 22.2px/1.2 Montserrat,sans-serif;color:var(--ink);outline:none}
