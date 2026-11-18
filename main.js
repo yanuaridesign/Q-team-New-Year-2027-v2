@@ -68,7 +68,7 @@
   async function start() {
     if (started) return; started = true;
     // decode everything below the fold right away, so later blocks appear instantly
-    document.querySelectorAll('#stamps img, #pain img').forEach(decode);
+    document.querySelectorAll('#stamps img, #pain img, #zayavka img, #scen img').forEach(decode);
     const on = el => el && el.classList.add('on');
     if (reduce) {
       hero.querySelectorAll('.star,.title,.hero-sub,.cta,.medal,.arr,.lab').forEach(on);
@@ -133,13 +133,13 @@
   const broken = document.getElementById('ballBroken');
   const shadow = document.getElementById('ballShadow');
   const shards = document.getElementById('shards');
-  const parr = pain.querySelector('.parr');
+  const reveals = [...pain.querySelectorAll('.reveal')];
   let dropped = false;
   function breakNow() {
     ball.classList.add('gone');
     broken.classList.add('on'); shadow.classList.add('on');
     pain.classList.add('hit');
-    setTimeout(() => parr.classList.add('on'), 450);
+    setTimeout(() => reveals.forEach(r => r.classList.add('on')), 450);
     const cols = ['#C8213F', '#F3D9C4', '#E8B04B', '#EC187E', '#9E1630'];
     for (let i = 0; i < 16; i++) {
       const b = document.createElement('i');
@@ -161,7 +161,7 @@
       ball.style.transform = 'rotate(3deg)';
       void ball.offsetWidth;
       ball.classList.add('fall');
-      ball.style.transform = 'translate(-26px,648px) rotate(24deg)';
+      ball.style.transform = 'translate(-26px,588px) rotate(24deg)';
       setTimeout(breakNow, 600);
     }, { once: true });
   }
@@ -176,4 +176,113 @@
   addEventListener('scroll', check, { passive: true });
   addEventListener('resize', check);
   setTimeout(check, 400);
+
+  /* ---------- QUIZ: 3 questions + form (Figma 594:990, 619:*) ---------- */
+  const quiz = document.getElementById('quiz');
+  const steps = [...quiz.querySelectorAll('.qs')];
+  const Q = [
+    { opts: [[243.8, 'Новорічний корпоратив'], [636.9, 'Тімбілдінг'], [1030, 'Річниця компанії'], [1423.1, 'Інше']] },
+    { opts: [[439.5, 'На нашій локації'], [832.5, 'Виїзний'], [1225.5, 'Онлайн']], prev: true },
+    { opts: [[243.8, '4–25 людей'], [636.9, '26-50 людей'], [1030, '51–100 людей'], [1423.1, '100+ людей']], prev: true },
+  ];
+  const answers = [];
+  const go = i => steps.forEach((s, k) => s.classList.toggle('on', k === i));
+  const form = document.getElementById('qform');
+  const chips = [...form.querySelectorAll('.chip')];
+  const fillChips = () => chips.forEach((c, i) => { c.textContent = answers[i] || ''; });
+  Q.forEach((q, qi) => {
+    const box = steps[qi];
+    q.opts.forEach(([x, label]) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'opt'; b.textContent = label;
+      b.style.cssText = `left:${x}px;top:722.8px;width:255.1px;height:58.9px`;
+      const c = document.createElement('button'); c.type = 'button'; c.className = 'circ'; c.setAttribute('aria-label', label); c.tabIndex = -1;
+      c.style.cssText = `left:${x}px;top:432.2px;width:255.1px;height:255.1px`;
+      const pick = () => {
+        box.querySelectorAll('.opt').forEach(o => o.classList.toggle('sel', o === b));
+        answers[qi] = label;
+        setTimeout(() => { if (qi === Q.length - 1) fillChips(); go(qi + 1); }, 380);
+      };
+      b.addEventListener('click', pick); c.addEventListener('click', pick);
+      c.addEventListener('mouseenter', () => b.classList.add('hov')); c.addEventListener('mouseleave', () => b.classList.remove('hov'));
+      box.append(c, b);
+    });
+    if (q.prev) {
+      const p = document.createElement('button'); p.type = 'button'; p.className = 'prev'; p.textContent = 'Попереднє питання';
+      p.style.cssText = 'left:100px;top:818px;width:180px'; p.addEventListener('click', () => go(qi - 1)); box.append(p);
+    }
+  });
+  form.querySelector('.prev').addEventListener('click', () => go(2));
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const name = form.elements.name, phone = form.elements.phone;
+    let ok = true;
+    [name, phone].forEach(f => { const bad = !f.value.trim() || (f === phone && f.value.replace(/\D/g, '').length < 9); f.classList.toggle('err', bad); if (bad) ok = false; });
+    if (!ok) { (name.classList.contains('err') ? name : phone).focus(); return; }
+    const data = { occasion: answers[0], place: answers[1], people: answers[2], name: name.value.trim(), phone: phone.value.trim(), company: form.elements.company.value.trim() };
+    // the Vercel site has no form backend yet: set window.QTEAM_FORM_ENDPOINT to POST the lead somewhere
+    if (window.QTEAM_FORM_ENDPOINT) { try { await fetch(window.QTEAM_FORM_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }); } catch (_) { /* keep the thank-you */ } }
+    form.classList.add('done'); form.querySelector('.thanks').hidden = false;
+  });
+
+  /* ---------- SCENARIOS: pinned table, the camera walks through 5 open plates ---------- */
+  const scen = document.getElementById('scen'), pin = scen.querySelector('.pin'), sStage = document.getElementById('scenStage');
+  const tbl = document.getElementById('tbl'), ovs = document.getElementById('ovs');
+  const SH = 1157, KEYS = ['det', 'fort', 'caps', 'quiz', 'mon'];
+  // positions relative to the tablecloth origin of Figma table 605:2
+  const STATES = [[145.02, 681.28], [-254.98, 681.28], [-914.98, 681.28], [-1663.42, 685.11], [-2328.29, 692.57], [-2998.75, 680.92]];
+  const LID = { // render box of the closed lid, node width, lifted pose (a, b, e, f of the matrix + width)
+    fort: { rb: [1484.4, -202.76, 789.48], w: 789.48, up: [0.99, -0.14, 1587.14, -436, 598.08] },
+    quiz: { rb: [2926.74, -206.76, 750.42], w: 746.9, up: [0.99, -0.14, 2883.69, -455.72, 811.18] },
+    det:  { rb: [824.8, -126.41, 790.1], w: 790.1, up: [0.98, -0.22, 801.65, -309.84, 760.7] },
+    caps: { rb: [2192.02, -123.55, 872], w: 872, up: [0.99, 0.11, 2312.54, -439.64, 711.72] },
+    mon:  { rb: [3568.8, -93.85, 789.13], w: 789.13, up: [1, -0.08, 3529.82, -403.13, 857.77] },
+  };
+  const PH = { det: [916.6, -127.01, 621.44], fort: [1573.4, -240.81, 635.67], caps: [2333.78, -112.91, 593.9], quiz: [3048.3, -212, 548.95], mon: [3622.34, -145.56, 664.11] };
+  const addImg = (src, x, y, w, cls) => { const im = new Image(); im.src = 'assets/scen/' + src; im.alt = ''; im.decoding = 'async'; if (cls) im.className = cls; im.style.cssText = `left:${x}px;top:${y}px;width:${w}px`; tbl.appendChild(im); return im; };
+  // z-order follows Figma: base, then lids interleaved with the decor slices
+  addImg('base.jpg', 0, -517, 6070);
+  const lidEl = {}, phEl = {};
+  const lidAndPhoto = k => { const p = PH[k]; phEl[k] = addImg('ph-' + k + '.png', p[0] - 1, p[1] - 1, Math.ceil(p[2]) + 2, 'ph'); const l = LID[k]; lidEl[k] = addImg('lid-' + k + '.png', l.rb[0], l.rb[1], l.rb[2], 'lid'); };
+  lidAndPhoto('fort'); addImg('s1.png', 887.46, -138.17, 4901.58);
+  lidAndPhoto('quiz'); lidAndPhoto('det'); addImg('s3.png', 1852.08, 43.79, 302.04);
+  lidAndPhoto('caps'); addImg('s4.png', 3344.35, -260.37, 1692.85);
+  lidAndPhoto('mon'); addImg('s5.png', 838.86, 24, 4496.24);
+  const ovEls = ['ov-0', 'ov-det', 'ov-fort', 'ov-caps', 'ov-quiz', 'ov-mon'].map(n => { const im = new Image(); im.src = 'assets/scen/' + n + '.png'; im.alt = ''; ovs.appendChild(im); return im; });
+
+  const smooth = x => x * x * (3 - 2 * x);
+  let travel = 1;
+  function scenFit() {
+    const k = document.documentElement.clientWidth / 1920, h = SH * k;
+    sStage.style.setProperty('--k', k);
+    pin.style.height = h + 'px';
+    pin.style.top = Math.min(0, innerHeight - h) + 'px';
+    travel = Math.max(400, innerHeight) * 0.85 * 5;
+    scen.style.height = (h + travel) + 'px';
+    scenPaint();
+  }
+  function scenPaint() {
+    const r = scen.getBoundingClientRect();
+    let p = clamp(-r.top / travel, 0, 1) * 5;
+    if (!Number.isFinite(p)) p = 0; // e.g. a hidden tab reports innerHeight 0
+    // hold on each state for a while, then move to the next one
+    const i = Math.min(4, Math.floor(p)), f = p - i;
+    const t = reduce ? Math.round(p) : i + smooth(clamp((f - 0.25) / 0.5, 0, 1));
+    const a = Math.floor(t), b = Math.min(5, a + 1), u = t - a;
+    const tx = STATES[a][0] + (STATES[b][0] - STATES[a][0]) * u, ty = STATES[a][1] + (STATES[b][1] - STATES[a][1]) * u;
+    tbl.style.transform = `translate(${tx}px,${ty}px)`;
+    KEYS.forEach((key, n) => {
+      const o = smooth(clamp(1 - Math.abs(t - (n + 1)) * 1.6, 0, 1));
+      const L = LID[key], [ca, cb, ex, ey, wl] = L.up;
+      const sc = 1 + o * (wl / L.w - 1), ang = Math.atan2(cb, ca) * o;
+      lidEl[key].style.transform = `translate(${(ex - L.rb[0]) * o}px,${(ey - L.rb[1]) * o}px) rotate(${ang}rad) scale(${sc})`;
+      lidEl[key].style.zIndex = o > 0.01 ? 20 : '';
+      phEl[key].style.zIndex = o > 0.01 ? 19 : '';
+      phEl[key].style.opacity = o;
+      phEl[key].style.transform = `translateY(${(1 - o) * 90}px) scale(${0.85 + 0.15 * o})`;
+    });
+    ovEls.forEach((im, n) => { im.style.opacity = clamp(1 - Math.abs(t - n) * 2.2, 0, 1); });
+  }
+  addEventListener('scroll', scenPaint, { passive: true });
+  addEventListener('resize', scenFit);
+  scenFit();
 })();
